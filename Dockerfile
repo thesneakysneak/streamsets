@@ -17,22 +17,6 @@
 FROM python:3.5.6-alpine3.8
 LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
 
-RUN apk add --no-cache libc-dev
-RUN apk add --no-cache git build-base cmake
-RUN apk add build-base gcc abuild binutils binutils-doc gcc-doc
-RUN apk add cmake cmake-doc 
-RUN apk add ccache ccache-doc 
-RUN apk add libjemalloc-dev libboost-dev \
-                   libboost-filesystem-dev \
-                   libboost-system-dev \
-                   libboost-regex-dev \
-                   flex \
-                   bison
-                   
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install -U pip
-
 # glibc installation courtesy https://github.com/jeanblanchard/docker-alpine-glibc
 ENV GLIBC_VERSION 2.25-r0
 
@@ -124,6 +108,12 @@ COPY --chown=sdc:sdc resources/ ${SDC_RESOURCES}/
 # to add a JDBC driver like my-jdbc.jar to the JDBC stage lib, the local file my-jdbc.jar
 # should be at the location $PROJECT_ROOT/sdc-extras/streamsets-datacollector-jdbc-lib/lib/my-jdbc.jar
 COPY --chown=sdc:sdc sdc-extras/ ${STREAMSETS_LIBRARIES_EXTRA_DIR}/
+
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -U pip
+
 
 USER ${SDC_USER}
 EXPOSE 18630
