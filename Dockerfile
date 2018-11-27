@@ -18,8 +18,17 @@ FROM python:3.5.6-alpine3.8
 LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
 
 RUN apk add --no-cache libc-dev
-RUN apk add --no-cache git build-base cmake bison flex krb5-dev libcap-dev samba-dev xfsprogs-dev
-
+RUN apk add --no-cache git build-base cmake
+RUN apk add build-base gcc abuild binutils binutils-doc gcc-doc
+RUN apk add cmake cmake-doc extra-cmake-modules extra-cmake-modules-doc
+RUN apk add ccache ccache-doc 
+RUN apk add libjemalloc-dev libboost-dev \
+                   libboost-filesystem-dev \
+                   libboost-system-dev \
+                   libboost-regex-dev \
+                   flex \
+                   bison
+                   
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install -U pip
