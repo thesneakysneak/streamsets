@@ -71,7 +71,7 @@ RUN apk --no-cache add bash \
 
 # Begin Data Collector installation
 ARG SDC_VERSION=3.4.2
-ARG SDC_URL=datacollector/3.4/3.4.2-RC2/tarball/streamsets-datacollector-core-${SDC_VERSION}.tgz
+ARG SDC_URL=http://nightly.streamsets.com.s3-us-west-2.amazonaws.com/datacollector/3.4/3.4.2-RC2/tarball/streamsets-datacollector-core-${SDC_VERSION}.tgz
 ARG SDC_USER=sdc
 # SDC_HOME is where executables and related files are installed. Used in setup_mapr script.
 ARG SDC_HOME="/opt/streamsets-datacollector-${SDC_VERSION}"
