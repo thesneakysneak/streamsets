@@ -18,7 +18,7 @@ FROM python:3.5.6-alpine3.8
 LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
 
 RUN apk add --no-cache libc-dev
-RUN apk add --no-cache build-base
+RUN apk add --no-cache git build-base cmake bison flex krb5-dev libcap-dev samba-dev xfsprogs-dev
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
