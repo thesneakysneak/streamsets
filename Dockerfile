@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-FROM python:3.5.6-slim-jessie
+FROM python:3.5.6-alpine3.8
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
