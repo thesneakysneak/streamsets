@@ -67,7 +67,8 @@ RUN apk --no-cache add bash \
     krb5 \
     libstdc++ \
     libuuid \
-    sed
+    sed \
+    gcc
 
 # Begin Data Collector installation
 ARG SDC_VERSION=3.4.2
