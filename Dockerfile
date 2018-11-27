@@ -15,9 +15,14 @@
 #
 
 FROM python:3.5.6-alpine3.8
+LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
+
+RUN apk add --no-cache libc-dev
+RUN apk add --no-cache build-base
+
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
+RUN pip install -U pip
 
 # glibc installation courtesy https://github.com/jeanblanchard/docker-alpine-glibc
 ENV GLIBC_VERSION 2.25-r0
