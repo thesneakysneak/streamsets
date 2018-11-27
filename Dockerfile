@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 
-FROM alpine:3.6
+FROM python:3.5.6-slim-jessie
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
 
 # glibc installation courtesy https://github.com/jeanblanchard/docker-alpine-glibc
@@ -56,16 +58,6 @@ RUN apk add --update curl && \
 # Set environment
 ENV JAVA_HOME /opt/jdk
 ENV PATH ${PATH}:${JAVA_HOME}/bin
-
-# Python install 
-RUN apk add --no-cache python3 && \
-    python3 -m ensurepip && \
-    rm -r /usr/lib/python*/ensurepip && \
-    pip3 install --upgrade pip setuptools && \
-    pip3 install -r requirements.txt && \
-    if [ ! -e /usr/bin/pip ]; then ln -s pip3 /usr/bin/pip ; fi && \
-    if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
-    rm -r /root/.cache
 
 # We set a UID/GID for the SDC user because certain test environments require these to be consistent throughout
 # the cluster. We use 20159 because it's above the default value of YARN's min.user.id property.
