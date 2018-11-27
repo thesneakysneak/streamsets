@@ -20,7 +20,7 @@ LABEL maintainer="Danny Pretorius <danielp@blts.co.za>"
 RUN apk add --no-cache libc-dev
 RUN apk add --no-cache git build-base cmake
 RUN apk add build-base gcc abuild binutils binutils-doc gcc-doc
-RUN apk add cmake cmake-doc extra-cmake-modules extra-cmake-modules-doc
+RUN apk add cmake cmake-doc 
 RUN apk add ccache ccache-doc 
 RUN apk add libjemalloc-dev libboost-dev \
                    libboost-filesystem-dev \
