@@ -70,6 +70,18 @@ RUN apk --no-cache add bash \
     sed \
     gcc
 
+RUN echo "http://dl-4.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+RUN apk --update add --no-cache \ 
+    lapack-dev \ 
+    gcc \
+    freetype-dev
+
+# Install dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    gfortran \
+    musl-dev \
+    g++
+    
 # Begin Data Collector installation
 ARG SDC_VERSION=3.4.2
 ARG SDC_URL=http://nightly.streamsets.com.s3-us-west-2.amazonaws.com/datacollector/3.4/3.4.2-RC2/tarball/streamsets-datacollector-core-${SDC_VERSION}.tgz
