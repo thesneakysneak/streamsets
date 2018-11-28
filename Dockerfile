@@ -3,6 +3,7 @@ MAINTAINER Adam Kunicki <adam@streamsets.com>
 
 ARG SDC_URL=https://archives.streamsets.com/datacollector/3.6.0/tarball/streamsets-datacollector-all-3.6.0.tgz
 ARG SDC_USER=sdc
+ARG SDC_VERSION=3.6.0
 
 RUN apk --no-cache add bash \
     curl \
@@ -37,7 +38,7 @@ RUN cd /usr/bin \
   && ln -sf python3.5-config python-config \
   && ln -sf pip3.5 pip
 
-RUN pip install --no-cache-dir virtualenv
+RUN pip3 install --no-cache-dir virtualenv
 
 # The paths below should generally be attached to a VOLUME for persistence.
 # SDC_CONF is where configuration files are stored. This can be shared.
