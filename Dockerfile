@@ -77,10 +77,14 @@ RUN apk --update add --no-cache \
     freetype-dev
 
 # Install dependencies
-RUN apk add --no-cache --virtual .build-deps \
-    gfortran \
-    musl-dev \
-    g++
+RUN set -ex ;\
+    echo "@community http://dl-cdn.alpinelinux.org/alpine/v$ALPINE_VERSION/community" >> /etc/apk/repositories ;\
+    apk add --no-cache --update libstdc++ \
+                                g++ \
+                                gfortran \
+                                openblas-dev@community \
+                                openblas@community \
+                                ;\
     
 # Begin Data Collector installation
 ARG SDC_VERSION=3.4.2
