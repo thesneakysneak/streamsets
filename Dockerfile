@@ -41,50 +41,83 @@ RUN cd /usr/bin \
 #####################################
 #   PYARROW
 ######################################
-RUN apk add --no-cache \
-            git \
-            build-base \
-            cmake \
-            bash \
-            jemalloc-dev \
-            boost-dev \
-            autoconf \
-            zlib-dev \
-            flex \
-            bison
+RUN apk add --update                                          \
+      bison                                                 \
+      ca-certificates                                       \
+      cmake                                                 \
+      flex                                                  \
+      g++                                                   \
+      git                                                   \
+      libboost-dev                                          \
+      libboost-filesystem-dev                               \
+      libboost-program-options-dev                          \
+      libboost-regex-dev                                    \
+      libboost-system-dev                                   \
+      libboost-test-dev                                     \
+      libpython2.7-dev                                      \
+      libssl-dev                                            \
+      libtool                                               \
+      make                                                  \
+      pkg-config                                            \
+      python-pip                                            \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install \
+      cython    \
+      pandas
 
-RUN pip install six numpy pandas cython pytest
 
+ENV ARROW_SOURCE_PATH=/usr/local/src/arrow         \
+    PARQUET_SOURCE_PATH=/usr/local/src/parquet-cpp
+
+ENV ARROW_HOME=/opt/arrow         \
+    PARQUET_HOME=/opt/parquet-cpp
+
+
+##
+## arrow
+##
+WORKDIR /usr/local/src
 RUN git clone https://github.com/apache/arrow.git
-
-RUN mkdir /arrow/cpp/build
-WORKDIR /arrow/cpp/build
-
-ENV ARROW_BUILD_TYPE=release
-ENV ARROW_HOME=/usr/local
-ENV PARQUET_HOME=/usr/local
-
-#disable backtrace
-RUN sed -i -e '/_EXECINFO_H/,/endif/d' -e '/execinfo/d' ../src/arrow/util/logging.cc
-
-RUN cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
-          -DCMAKE_INSTALL_LIBDIR=lib \
-          -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
-          -DARROW_PARQUET=on \
-          -DARROW_PYTHON=on \
-          -DARROW_PLASMA=on \
-          -DARROW_BUILD_TESTS=OFF \
-          ..
-RUN make -j$(nproc)
+WORKDIR $ARROW_SOURCE_PATH/cpp
+RUN cmake                                \
+      -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
+      -DCMAKE_BUILD_TYPE=Release         \
+      -DARROW_BUILD_TESTS=Off            \
+      .
+RUN make -j4
 RUN make install
 
-WORKDIR /arrow/python
 
-RUN python setup.py build_ext --build-type=$ARROW_BUILD_TYPE \
-       --with-parquet --inplace
+##
+## parquet-cpp
+##
+WORKDIR /usr/local/src
+RUN git clone https://github.com/apache/parquet-cpp.git
+WORKDIR $PARQUET_SOURCE_PATH
+RUN cmake                                  \
+      -DCMAKE_INSTALL_PREFIX=$PARQUET_HOME \
+      -DCMAKE_BUILD_TYPE=Release           \
+      -DPARQUET_ARROW=On                   \
+      -DPARQUET_BUILD_TESTS=Off            \
+      .
+RUN make -j4
+RUN make install
+
+
+##
+## pyarrow
+##
+WORKDIR $ARROW_SOURCE_PATH/python
+RUN pip install -r requirements.txt \
+    && python setup.py build_ext    \
+      --with-parquet                \
+      --with-jemalloc               \
+      --build-type=release          \
+      install
+
+
+ENV LD_LIBRARY_PATH=$ARROW_HOME/lib:$PARQUET_HOME/lib:$ARROW_SOURCE_PATH/cpp/jemalloc_ep-prefix/src/jemalloc_ep/dist/lib:$LD_LIBRARY_PATH
 ################################################
-
-
 
 
 COPY requirements.txt ./
