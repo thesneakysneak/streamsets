@@ -54,7 +54,7 @@ RUN apk add --no-cache \
             flex \
             bison
 
-RUN pip install six numpy pandas cython pytest
+RUN pip3 install six numpy pandas cython pytest
 
 RUN git clone https://github.com/apache/arrow.git
 
