@@ -14,7 +14,7 @@ RUN apk --no-cache add bash \
 RUN apk add --no-cache bash bash-doc bash-completion
 RUN apk add --no-cache musl-dev 
 RUN apk add --no-cache gfortran gdb make
-
+RUN apk add --no-cache git cmake
 
 
 RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
@@ -37,6 +37,55 @@ RUN cd /usr/bin \
   && ln -sf python3.5 python \
   && ln -sf python3.5-config python-config \
   && ln -sf pip3.5 pip
+
+#####################################
+#   PYARROW
+######################################
+RUN apk add --no-cache \
+            git \
+            build-base \
+            cmake \
+            bash \
+            jemalloc-dev \
+            boost-dev \
+            autoconf \
+            zlib-dev \
+            flex \
+            bison
+
+RUN pip install six numpy pandas cython pytest
+
+RUN git clone https://github.com/apache/arrow.git
+
+RUN mkdir /arrow/cpp/build
+WORKDIR /arrow/cpp/build
+
+ENV ARROW_BUILD_TYPE=release
+ENV ARROW_HOME=/usr/local
+ENV PARQUET_HOME=/usr/local
+
+#disable backtrace
+RUN sed -i -e '/_EXECINFO_H/,/endif/d' -e '/execinfo/d' ../src/arrow/util/logging.cc
+
+RUN cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
+          -DCMAKE_INSTALL_LIBDIR=lib \
+          -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
+          -DARROW_PARQUET=on \
+          -DARROW_PYTHON=on \
+          -DARROW_PLASMA=on \
+          -DARROW_BUILD_TESTS=OFF \
+          ..
+RUN make -j$(nproc)
+RUN make install
+
+WORKDIR /arrow/python
+
+RUN python setup.py build_ext --build-type=$ARROW_BUILD_TYPE \
+       --with-parquet --inplace
+################################################
+
+
+
 
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
