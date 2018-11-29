@@ -38,7 +38,11 @@ RUN cd /usr/bin \
   && ln -sf python3.5-config python-config \
   && ln -sf pip3.5 pip
 
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
 RUN pip3 install --no-cache-dir virtualenv
+
 
 # The paths below should generally be attached to a VOLUME for persistence.
 # SDC_CONF is where configuration files are stored. This can be shared.
