@@ -1,5 +1,71 @@
-FROM jeanblanchard/java:serverjre-8
-MAINTAINER Adam Kunicki <adam@streamsets.com>
+FROM python:3.7-alpine3.8
+
+
+ENV GLIBC_VERSION 2.28-r0
+
+# Download and install glibc
+RUN apk add --update curl && \
+  curl -Lo /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
+  curl -Lo glibc.apk "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk" && \
+  curl -Lo glibc-bin.apk "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-bin-${GLIBC_VERSION}.apk" && \
+  apk add glibc-bin.apk glibc.apk && \
+  /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib && \
+  echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
+  apk del curl && \
+  rm -rf glibc.apk glibc-bin.apk /var/cache/apk/*
+
+##############
+#
+#################
+
+# Java Version
+ENV JAVA_VERSION_MAJOR 8
+ENV JAVA_VERSION_MINOR 191
+ENV JAVA_VERSION_BUILD 12
+ENV JAVA_URL_ELEMENT   2787e4a523244c269598db4e85c51e0c
+ENV JAVA_PACKAGE       server-jre
+ENV JAVA_SHA256_SUM    8d6ead9209fd2590f3a8778abbbea6a6b68e02b8a96500e2e77eabdbcaaebcae
+
+# Download and unarchive Java
+RUN apk add --update curl &&\
+  mkdir -p /opt &&\
+  curl -jkLH "Cookie: oraclelicense=accept-securebackup-cookie" -o java.tar.gz\
+    http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_URL_ELEMENT}/${JAVA_PACKAGE}-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz &&\
+  echo "$JAVA_SHA256_SUM  java.tar.gz" | sha256sum -c - &&\
+  gunzip -c java.tar.gz | tar -xf - -C /opt && rm -f java.tar.gz &&\
+  ln -s /opt/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR} /opt/jdk &&\
+  rm -rf /opt/jdk/*src.zip \
+         /opt/jdk/lib/missioncontrol \
+         /opt/jdk/lib/visualvm \
+         /opt/jdk/lib/*javafx* \
+         /opt/jdk/jre/lib/plugin.jar \
+         /opt/jdk/jre/lib/ext/jfxrt.jar \
+         /opt/jdk/jre/bin/javaws \
+         /opt/jdk/jre/lib/javaws.jar \
+         /opt/jdk/jre/lib/desktop \
+         /opt/jdk/jre/plugin \
+         /opt/jdk/jre/lib/deploy* \
+         /opt/jdk/jre/lib/*javafx* \
+         /opt/jdk/jre/lib/*jfx* \
+         /opt/jdk/jre/lib/amd64/libdecora_sse.so \
+         /opt/jdk/jre/lib/amd64/libprism_*.so \
+         /opt/jdk/jre/lib/amd64/libfxplugins.so \
+         /opt/jdk/jre/lib/amd64/libglass.so \
+         /opt/jdk/jre/lib/amd64/libgstreamer-lite.so \
+         /opt/jdk/jre/lib/amd64/libjavafx*.so \
+         /opt/jdk/jre/lib/amd64/libjfx*.so &&\
+  apk del curl &&\
+  rm -rf /var/cache/apk/*
+
+# Set environment
+ENV JAVA_HOME /opt/jdk
+ENV PATH ${PATH}:${JAVA_HOME}/bin
+
+
+#########################
+#
+#################################
+
 
 ARG SDC_URL=https://archives.streamsets.com/datacollector/3.5.2/tarball/streamsets-datacollector-all-3.5.2.tgz
 ARG SDC_USER=sdc
@@ -42,6 +108,7 @@ RUN cd /usr/bin \
 #   PYARROW
 ######################################
 
+
 RUN apk add --no-cache \
             git \
             build-base \
@@ -83,6 +150,7 @@ WORKDIR /arrow/python
 
 RUN python setup.py build_ext --build-type=$ARROW_BUILD_TYPE \
        --with-parquet --inplace
+      #--with-plasma  # commented out because plasma tests don't work
 ################################################
 
 
