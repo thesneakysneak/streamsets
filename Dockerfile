@@ -61,7 +61,7 @@ RUN apk add --update                                          \
       pkg-config                                            \
       python-pip                                            \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install \
+RUN pip3 install \
       cython    \
       pandas
 
