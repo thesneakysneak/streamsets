@@ -1,71 +1,5 @@
-FROM python:3.7-alpine3.8
-
-
-ENV GLIBC_VERSION 2.28-r0
-
-# Download and install glibc
-RUN apk add --update curl && \
-  curl -Lo /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
-  curl -Lo glibc.apk "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk" && \
-  curl -Lo glibc-bin.apk "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-bin-${GLIBC_VERSION}.apk" && \
-  apk add glibc-bin.apk glibc.apk && \
-  /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib && \
-  echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
-  apk del curl && \
-  rm -rf glibc.apk glibc-bin.apk /var/cache/apk/*
-
-##############
-#
-#################
-
-# Java Version
-ENV JAVA_VERSION_MAJOR 8
-ENV JAVA_VERSION_MINOR 191
-ENV JAVA_VERSION_BUILD 12
-ENV JAVA_URL_ELEMENT   2787e4a523244c269598db4e85c51e0c
-ENV JAVA_PACKAGE       server-jre
-ENV JAVA_SHA256_SUM    8d6ead9209fd2590f3a8778abbbea6a6b68e02b8a96500e2e77eabdbcaaebcae
-
-# Download and unarchive Java
-RUN apk add --update curl &&\
-  mkdir -p /opt &&\
-  curl -jkLH "Cookie: oraclelicense=accept-securebackup-cookie" -o java.tar.gz\
-    http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_URL_ELEMENT}/${JAVA_PACKAGE}-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz &&\
-  echo "$JAVA_SHA256_SUM  java.tar.gz" | sha256sum -c - &&\
-  gunzip -c java.tar.gz | tar -xf - -C /opt && rm -f java.tar.gz &&\
-  ln -s /opt/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR} /opt/jdk &&\
-  rm -rf /opt/jdk/*src.zip \
-         /opt/jdk/lib/missioncontrol \
-         /opt/jdk/lib/visualvm \
-         /opt/jdk/lib/*javafx* \
-         /opt/jdk/jre/lib/plugin.jar \
-         /opt/jdk/jre/lib/ext/jfxrt.jar \
-         /opt/jdk/jre/bin/javaws \
-         /opt/jdk/jre/lib/javaws.jar \
-         /opt/jdk/jre/lib/desktop \
-         /opt/jdk/jre/plugin \
-         /opt/jdk/jre/lib/deploy* \
-         /opt/jdk/jre/lib/*javafx* \
-         /opt/jdk/jre/lib/*jfx* \
-         /opt/jdk/jre/lib/amd64/libdecora_sse.so \
-         /opt/jdk/jre/lib/amd64/libprism_*.so \
-         /opt/jdk/jre/lib/amd64/libfxplugins.so \
-         /opt/jdk/jre/lib/amd64/libglass.so \
-         /opt/jdk/jre/lib/amd64/libgstreamer-lite.so \
-         /opt/jdk/jre/lib/amd64/libjavafx*.so \
-         /opt/jdk/jre/lib/amd64/libjfx*.so &&\
-  apk del curl &&\
-  rm -rf /var/cache/apk/*
-
-# Set environment
-ENV JAVA_HOME /opt/jdk
-ENV PATH ${PATH}:${JAVA_HOME}/bin
-
-
-#########################
-#
-#################################
-
+FROM jeanblanchard/java:serverjre-8
+MAINTAINER Adam Kunicki <adam@streamsets.com>
 
 ARG SDC_URL=https://archives.streamsets.com/datacollector/3.5.2/tarball/streamsets-datacollector-all-3.5.2.tgz
 ARG SDC_USER=sdc
@@ -76,38 +10,128 @@ RUN apk --no-cache add bash \
     krb5-libs \
     libstdc++ \
     sed
-    
+
 RUN apk add --no-cache bash bash-doc bash-completion
 RUN apk add --no-cache musl-dev 
 RUN apk add --no-cache gfortran gdb make
 RUN apk add --no-cache git cmake
 
 
-RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
-  && apk add --update \
-              musl \
-              build-base \
-              linux-headers \
-              ca-certificates \
-              python3 \
-              python3-dev \
-              postgresql-dev \
-              bash \
-  && pip3 install --no-cache-dir --upgrade --force-reinstall pip \
-  && rm /var/cache/apk/*
+#######
+#
+########################
 
-RUN cd /usr/bin \
-  && ln -sf easy_install-3.5 easy_install \
-  && ln -sf idle3.5 idle \
-  && ln -sf pydoc3.5 pydoc \
-  && ln -sf python3.5 python \
-  && ln -sf python3.5-config python-config \
-  && ln -sf pip3.5 pip
+# ensure local python is preferred over distribution python
+ENV PATH /usr/local/bin:$PATH
+
+# http://bugs.python.org/issue19846
+# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
+ENV LANG C.UTF-8
+# https://github.com/docker-library/python/issues/147
+ENV PYTHONIOENCODING UTF-8
+
+# install ca-certificates so that HTTPS works consistently
+# other runtime dependencies for Python are installed later
+RUN apk add --no-cache ca-certificates
+
+ENV GPG_KEY C01E1CAD5EA2C4F0B8E3571504C367C218ADD4FF
+ENV PYTHON_VERSION 2.7.15
+
+RUN set -ex \
+	&& apk add --no-cache --virtual .fetch-deps \
+		gnupg \
+		tar \
+		xz \
+	\
+	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
+	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
+	&& export GNUPGHOME="$(mktemp -d)" \
+	&& gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" \
+	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
+	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
+	&& rm -rf "$GNUPGHOME" python.tar.xz.asc \
+	&& mkdir -p /usr/src/python \
+	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
+	&& rm python.tar.xz \
+	\
+	&& apk add --no-cache --virtual .build-deps  \
+		bzip2-dev \
+		coreutils \
+		dpkg-dev dpkg \
+		findutils \
+		gcc \
+		gdbm-dev \
+		libc-dev \
+		libnsl-dev \
+		libressl-dev \
+		libtirpc-dev \
+		linux-headers \
+		make \
+		ncurses-dev \
+		pax-utils \
+		readline-dev \
+		sqlite-dev \
+		tcl-dev \
+		tk \
+		tk-dev \
+		zlib-dev \
+# add build deps before removing fetch deps in case there's overlap
+	&& apk del .fetch-deps \
+	\
+	&& cd /usr/src/python \
+	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+	&& ./configure \
+		--build="$gnuArch" \
+		--enable-shared \
+		--enable-unicode=ucs4 \
+	&& make -j "$(nproc)" \
+# set thread stack size to 1MB so we don't segfault before we hit sys.getrecursionlimit()
+# https://github.com/alpinelinux/aports/commit/2026e1259422d4e0cf92391ca2d3844356c649d0
+		EXTRA_CFLAGS="-DTHREAD_STACK_SIZE=0x100000" \
+	&& make install \
+	\
+	&& find /usr/local -type f -executable -not \( -name '*tkinter*' \) -exec scanelf --needed --nobanner --format '%n#p' '{}' ';' \
+		| tr ',' '\n' \
+		| sort -u \
+		| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+		| xargs -rt apk add --no-cache --virtual .python-rundeps \
+	&& apk del .build-deps \
+	\
+	&& find /usr/local -depth \
+		\( \
+			\( -type d -a \( -name test -o -name tests \) \) \
+			-o \
+			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
+		\) -exec rm -rf '{}' + \
+	&& rm -rf /usr/src/python \
+	\
+	&& python2 --version
+
+# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
+ENV PYTHON_PIP_VERSION 18.1
+
+RUN set -ex; \
+	\
+	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
+	\
+	python get-pip.py \
+		--disable-pip-version-check \
+		--no-cache-dir \
+		"pip==$PYTHON_PIP_VERSION" \
+	; \
+	pip --version; \
+	\
+	find /usr/local -depth \
+		\( \
+			\( -type d -a \( -name test -o -name tests \) \) \
+			-o \
+			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
+		\) -exec rm -rf '{}' +; \
+	rm -f get-pip.py
 
 #####################################
 #   PYARROW
 ######################################
-
 
 RUN apk add --no-cache \
             git \
@@ -121,7 +145,7 @@ RUN apk add --no-cache \
             flex \
             bison
 
-RUN pip3 install six numpy pandas cython pytest
+RUN pip install six numpy pandas cython pytest
 
 RUN git clone https://github.com/apache/arrow.git
 
@@ -150,14 +174,13 @@ WORKDIR /arrow/python
 
 RUN python setup.py build_ext --build-type=$ARROW_BUILD_TYPE \
        --with-parquet --inplace
-      #--with-plasma  # commented out because plasma tests don't work
 ################################################
 
 
 COPY requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip3 install --no-cache-dir virtualenv
+RUN pip install --no-cache-dir virtualenv
 
 
 # The paths below should generally be attached to a VOLUME for persistence.
