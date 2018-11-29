@@ -39,7 +39,7 @@ RUN cd /usr/bin \
   && ln -sf pip3.5 pip
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 RUN pip3 install --no-cache-dir virtualenv
 
