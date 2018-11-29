@@ -62,9 +62,6 @@ RUN cd /tmp && \
     tar xzf /tmp/sdc.tgz --strip-components 1 -C /opt/streamsets-datacollector && \
     rm -rf /tmp/sdc.tgz
 
-# Add logging to stdout to make logs visible through `docker logs`.
-RUN sed -i 's|INFO, streamsets|INFO, streamsets,stdout|' "${SDC_DIST}/etc/sdc-log4j.properties"
-
 # Create necessary directories.
 RUN mkdir -p /mnt \
     "${SDC_DATA}" \
