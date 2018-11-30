@@ -3,6 +3,7 @@ MAINTAINER Adam Kunicki <adam@streamsets.com>
 
 ARG SDC_URL=https://archives.streamsets.com/datacollector/3.5.2/tarball/streamsets-datacollector-all-3.5.2.tgz
 ARG SDC_USER=sdc
+ARG SDC_UID=20159
 ARG SDC_VERSION=3.5.2
 
 RUN apk --no-cache add bash \
